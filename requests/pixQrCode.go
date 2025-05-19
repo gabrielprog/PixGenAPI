@@ -24,29 +24,26 @@ type ValueInCents interface {
 type IdTransaction interface {
 	string
 }
-type ResponsePixQrCode struct {
+type ResponsePixCode struct {
 	Qrode        string `json:"qr_code"`
 	Base64QrCode string `json:"qr_code_base64"`
 	Status       string `json:"status"`
 	Message      string `json:"message"`
 }
 
-type ResponseStatusPixQrCode struct {
-	responsePixQrCode ResponsePixQrCode
-}
-
-func GeneratePixQrCode[T ValueInCents](valueOfPix *T) *ResponsePixQrCode {
+func GeneratePix[T ValueInCents](valueOfPix *T) *ResponsePixCode {
 	if *valueOfPix < 50 {
 		*valueOfPix = 50
 	}
 
 	client := resty.New()
-	rawJson := map[string]interface{}{
+	bodyInJson := map[string]interface{}{
 		"value": *valueOfPix,
 	}
-	responseInJson := &ResponsePixQrCode{}
-	response, err := client.R().EnableTrace().SetHeaders(headers).SetBody(rawJson).Post(URLBASE + "/api/pix/cashIn")
+	responseInJson := &ResponsePixCode{}
+	response, err := client.R().EnableTrace().SetHeaders(headers).SetBody(bodyInJson).Post(URLBASE + "/api/pix/cashIn")
 	if err != nil {
+		log.Fatal("Error making request: ", err)
 		return responseInJson
 	}
 	if err := json.Unmarshal(response.Body(), responseInJson); err != nil {
@@ -57,7 +54,7 @@ func GeneratePixQrCode[T ValueInCents](valueOfPix *T) *ResponsePixQrCode {
 
 func IsApprovedPayment[T IdTransaction](id T) bool {
 	client := resty.New()
-	responseInJson := &ResponsePixQrCode{}
+	responseInJson := &ResponsePixCode{}
 	response, err := client.R().EnableTrace().SetHeaders(headers).Get(URLBASE + "/api/transactions/" + string(id))
 	if err != nil {
 		return false
